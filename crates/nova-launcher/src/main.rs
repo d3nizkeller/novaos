@@ -25,6 +25,8 @@ NovaOS — лаунчер для LG webOS
   --fps N              целевая частота кадров (по умолчанию 60)
   --offline            не трогать систему и сеть (desktop-превью)
   --online             разрешить системные вызовы и сеть (телевизор)
+  --smoke [КАТАЛОГ]    проверить запуск на устройстве: 45 кадров в PNG
+                       (по умолчанию /tmp/nova-smoke) и сообщение об ошибках
   --extract-ipk ФАЙЛ   распаковать data.tar.gz пакета и выйти
   --dest КАТАЛОГ       каталог распаковки (по умолчанию ./extracted)
   --version            версия NovaOS
@@ -47,6 +49,7 @@ fn main() {
     let mut options = Options::default();
     let mut offline = !cfg!(feature = "webos");
     let mut extract: Option<PathBuf> = None;
+    let mut smoke: Option<PathBuf> = None;
     let mut dest = PathBuf::from("extracted");
     let mut resolution_override: Option<(u32, u32)> = None;
 
@@ -90,6 +93,18 @@ fn main() {
             "--offline" => offline = true,
             "--online" => offline = false,
             "--extract-ipk" => extract = Some(PathBuf::from(value("--extract-ipk"))),
+            "--smoke" => {
+                // Значение необязательно: смотриим следующий аргумент-путь.
+                let next = args.get(index).cloned();
+                let path = match next {
+                    Some(candidate) if !candidate.starts_with("--") => {
+                        index += 1;
+                        PathBuf::from(candidate)
+                    }
+                    _ => PathBuf::from("/tmp/nova-smoke"),
+                };
+                smoke = Some(path);
+            }
             "--dest" => dest = PathBuf::from(value("--dest")),
             other => {
                 eprintln!("nova: неизвестный параметр {other}\n\n{USAGE}");
@@ -100,6 +115,11 @@ fn main() {
 
     if let Some(ipk) = extract {
         std::process::exit(extract_ipk(&ipk, &dest));
+    }
+
+    // Проверка запуска на устройстве: короткая отрисовка в PNG и отчёт.
+    if let Some(dir) = smoke {
+        std::process::exit(smoke_run(&dir));
     }
 
     let settings = Settings::load_default();
@@ -142,6 +162,50 @@ fn main() {
             eprintln!("nova: кадров отрисовано: {frames}");
         }
     }
+}
+
+/// Короткая проверка запуска на телевизоре: 45 кадров в PNG без окна.
+///
+/// Команда для SSH после установки: `nova --smoke` — если в каталоге появились
+/// кадры, связка «бинарник + SDL2 + рендерер» на устройстве работает.
+fn smoke_run(dir: &std::path::Path) -> i32 {
+    let settings = Settings::load_default();
+    let env = WorkerEnv::from_settings(&settings, true);
+    let mut state = AppState::spawn_env(settings, env);
+    let options = Options {
+        width: 960,
+        height: 540,
+        fps: 30,
+        frames: Some(45),
+        out_dir: Some(dir.to_path_buf()),
+        every: 15,
+        realtime: false,
+        ..Options::default()
+    };
+    match std::fs::create_dir_all(dir) {
+        Ok(()) => {}
+        Err(error) => {
+            eprintln!("nova: не создать каталог {}: {error}", dir.display());
+            crash_log(&format!("smoke: mkdir: {error}"));
+            return 1;
+        }
+    }
+    let frames = nova_launcher::backend::offscreen::run(&mut state, options);
+    let pngs = std::fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().extension().is_some_and(|x| x == "png"))
+                .count()
+        })
+        .unwrap_or(0);
+    println!("NovaOS {} · кадров: {frames} · PNG: {pngs} · каталог: {}", nova_core::VERSION, dir.display());
+    if pngs == 0 {
+        crash_log("smoke: кадры не записаны");
+        return 1;
+    }
+    println!("NOVA_SMOKE_OK");
+    0
 }
 
 /// Пишет строку в аварийный журнал устройства (куда сможем записать).
