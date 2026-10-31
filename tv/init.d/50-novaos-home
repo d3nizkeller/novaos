@@ -1,0 +1,7 @@
+#!/bin/sh
+# NovaOS: применяется при каждой загрузке телевизора.
+# Устанавливается лаунчером, удаляется командой `nova home disable`.
+STATE=/var/lib/novaos-home
+[ -f "$STATE/enabled" ] || exit 0
+sleep 5
+sh "$STATE/apply.sh" >>"$STATE/boot.log" 2>&1 || true

@@ -1,0 +1,17 @@
+# Конфигурация кросс-сборки NovaOS под LG webOS TV (armv7, soft-float).
+#
+# Использование:
+#   cargo build --release --target armv7-unknown-linux-gnueabi \
+#       --config tools/cargo-webos.toml --features webos
+#
+# Тулчейн и SDL-webOS подставляет скрипт tools/build-webos.sh: он добавляет
+# каталог NDK в PATH и переписывает sdl2.pc на фактический sysroot, поэтому
+# здесь нужны только имена инструментов и флаги процессора.
+
+[target.armv7-unknown-linux-gnueabi]
+linker = "arm-webos-linux-gnueabi-gcc"
+ar = "arm-webos-linux-gnueabi-ar"
+rustflags = [
+    # Чип LG M16P: пользовательский код webOS 4.x собирается под Cortex-A9.
+    "-C", "target-cpu=cortex-a9",
+]

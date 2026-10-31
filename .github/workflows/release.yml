@@ -1,0 +1,53 @@
+# Релиз NovaOS: кросс-сборка IPK и публикация репозитория в GitHub Pages.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: IPK и репозиторий
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: armv7-unknown-linux-gnueabi
+      - name: SDK webOS
+        run: tools/setup-webos-sdk.sh "$HOME/.cache/novaos"
+      - name: Сборка и упаковка
+        run: |
+          NOVA_WEBOS_NDK="$HOME/.cache/novaos/toolchain/arm-webos-linux-gnueabi_sdk-buildroot" \
+          NOVA_WEBOS_SDL="$HOME/.cache/novaos/sdl/sdl2" \
+          NOVA_REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo" \
+          tools/build-webos.sh
+      - name: Релиз с артефактами
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.ipk
+            dist/repo.json
+            dist/sha256sums
+      - name: Каталог для GitHub Pages
+        run: |
+          mkdir -p pages/repo
+          cp dist/*.ipk dist/repo.json dist/sha256sums pages/repo/
+          mkdir -p pages/repo/com.novaos.launcher
+          cp tv/icon.png tv/largeIcon.png pages/repo/com.novaos.launcher/
+          cp README.md pages/repo/com.novaos.launcher/README.md
+      - name: Настройка Pages
+        uses: actions/configure-pages@v5
+      - name: Загрузка Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+      - name: Публикация Pages
+        uses: actions/deploy-pages@v4

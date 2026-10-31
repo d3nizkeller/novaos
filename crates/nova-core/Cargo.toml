@@ -1,0 +1,24 @@
+[package]
+name = "nova-core"
+description = "Ядро NovaOS: каталог приложений, пакеты IPK/APK, репозитории, установка, Luna-вызовы"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = ["net"]
+net = ["dep:ureq"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+flate2.workspace = true
+tar.workspace = true
+sha2.workspace = true
+zip.workspace = true
+qrcodegen.workspace = true
+ureq = { version = "2.10", default-features = false, features = ["tls"], optional = true }
+
+[dev-dependencies]
+flate2.workspace = true

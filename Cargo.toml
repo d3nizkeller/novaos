@@ -1,0 +1,36 @@
+[workspace]
+resolver = "2"
+members = ["crates/nova-core", "crates/nova-launcher"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "MIT"
+repository = "https://github.com/novaos-tv/novaos"
+authors = ["NovaOS contributors"]
+
+[workspace.dependencies]
+nova-core = { path = "crates/nova-core", version = "0.1.0" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+flate2 = "1"
+tar = "0.4"
+sha2 = "0.10"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+qrcodegen = "1.8"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+ab_glyph = "0.2"
+png = "0.17"
+
+[profile.release]
+lto = "thin"
+strip = true
+codegen-units = 1
+opt-level = 3
+
+[profile.dev.package.ab_glyph]
+opt-level = 2
+
+[profile.dev.package.image]
+opt-level = 2

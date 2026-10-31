@@ -1,0 +1,77 @@
+# Непрерывная интеграция NovaOS: тесты, кадры экранов и сухой прогон упаковки.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  test:
+    name: Тесты и сборка (x86_64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Зависимости SDL2 (для ветки sdl)
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+      - name: Кэш cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Тесты воркспейса
+        run: cargo test --workspace
+      - name: Тесты с SDL
+        run: cargo test -p nova-launcher --features sdl
+      - name: Контроль формата
+        run: cargo fmt --all -- --check
+      - name: Кадры экранов (offscreen)
+        run: |
+          cargo run -p nova-launcher --example frames -- /tmp/nova-frames
+          test -f /tmp/nova-frames/01-home.png
+      - name: Сухой прогон упаковки
+        run: |
+          cargo build -p nova-launcher
+          python3 tools/package.py --binary target/debug/nova --tv tv --out dist --arch all
+          python3 tools/repository.py --ipk dist/com.novaos.launcher_0.1.0_all.ipk --out dist
+          cargo run -p nova-core --example inspect -- dist/com.novaos.launcher_0.1.0_all.ipk
+
+  webos:
+    name: Кросс-сборка webOS (armv7)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: armv7-unknown-linux-gnueabi
+      - name: SDK webOS
+        run: tools/setup-webos-sdk.sh "$HOME/.cache/novaos"
+      - name: Кэш cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-webos-${{ hashFiles('**/Cargo.lock') }}
+      - name: Сборка, IPK и репозиторий
+        run: |
+          NOVA_WEBOS_NDK="$HOME/.cache/novaos/toolchain/arm-webos-linux-gnueabi_sdk-buildroot" \
+          NOVA_WEBOS_SDL="$HOME/.cache/novaos/sdl/sdl2" \
+          tools/build-webos.sh
+      - name: Артефакты
+        uses: actions/upload-artifact@v4
+        with:
+          name: novaos-webos
+          path: |
+            dist/*.ipk
+            dist/repo.json
+            dist/sha256sums

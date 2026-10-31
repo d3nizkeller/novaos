@@ -1,0 +1,37 @@
+[package]
+name = "nova-launcher"
+description = "Нативный лаунчер NovaOS для LG webOS: SDL2 + собственный программный рендерер"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+default-run = "nova"
+
+[lib]
+name = "nova_launcher"
+path = "src/lib.rs"
+
+[[bin]]
+name = "nova"
+path = "src/main.rs"
+
+[features]
+default = ["offscreen"]
+# Программный рендерер в PNG: снимки экранов, CI-проверки, desktop-превью без окна.
+offscreen = []
+# Окно SDL2 (desktop-разработка).
+sdl = ["dep:sdl2"]
+# Сборка для телевизора: SDL-webOS с Wayland-бэкендом.
+webos = ["sdl", "nova-core/net"]
+
+[dependencies]
+nova-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+image.workspace = true
+ab_glyph.workspace = true
+png.workspace = true
+sdl2 = { version = "0.38", features = ["use-pkgconfig"], optional = true }
+
+[dev-dependencies]
+nova-core = { workspace = true, features = ["net"] }

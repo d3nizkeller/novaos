@@ -1,0 +1,4 @@
+# Куда webOS может установить NovaOS (по приоритету):
+/media/cryptofs/apps/usr/palm/applications/com.novaos.launcher
+/media/developer/apps/usr/palm/applications/com.novaos.launcher
+/usr/palm/applications/com.novaos.launcher
