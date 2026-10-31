@@ -1,6 +1,6 @@
 {
   "id": "com.novaos.launcher",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "vendor": "NovaOS",
   "type": "native",
   "main": "nova",

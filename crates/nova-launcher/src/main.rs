@@ -153,7 +153,13 @@ fn main() {
             Ok(frames) => eprintln!("nova: кадров отрисовано: {frames}"),
             Err(error) => {
                 crash_log(&format!("sdl: {error}"));
-                eprintln!("nova: SDL не запустился ({error}), пишу кадры в PNG");
+                eprintln!("nova: SDL не запустился: {error}");
+                if cfg!(feature = "webos") {
+                    // На телевизоре бесконечный цикл без окна выглядит как
+                    // «приложение не запускается»: завершаемся с ошибкой,
+                    // причина остаётся в журнале.
+                    std::process::exit(1);
+                }
                 nova_launcher::backend::offscreen::run(&mut state, fallback(options));
             }
         },
@@ -199,7 +205,11 @@ fn smoke_run(dir: &std::path::Path) -> i32 {
                 .count()
         })
         .unwrap_or(0);
-    println!("NovaOS {} · кадров: {frames} · PNG: {pngs} · каталог: {}", nova_core::VERSION, dir.display());
+    println!(
+        "NovaOS {} · кадров: {frames} · PNG: {pngs} · каталог: {}",
+        nova_core::VERSION,
+        dir.display()
+    );
     if pngs == 0 {
         crash_log("smoke: кадры не записаны");
         return 1;
@@ -283,9 +293,15 @@ fn choose_backend(requested: &str) -> &'static str {
                 "offscreen"
             }
         }
+        // auto: на телевизоре (сборка webos) окно SDL всегда — SDL-webOS сам
+        // находит сокет композитора, переменных DISPLAY может не быть.
+        // На desktop окно только при наличии графической сессии.
         _ => {
-            if cfg!(feature = "sdl") && std::env::var_os("DISPLAY").is_some()
-                || cfg!(feature = "sdl") && std::env::var_os("WAYLAND_DISPLAY").is_some()
+            if cfg!(feature = "webos") {
+                "sdl"
+            } else if cfg!(feature = "sdl")
+                && (std::env::var_os("DISPLAY").is_some()
+                    || std::env::var_os("WAYLAND_DISPLAY").is_some())
             {
                 "sdl"
             } else {
