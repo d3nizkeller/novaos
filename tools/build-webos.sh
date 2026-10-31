@@ -41,9 +41,10 @@ arm-webos-linux-gnueabi-strip -s "$BINARY"
 file "$BINARY" || true
 
 echo "==> package.py"
+rm -f "$ROOT"/dist/*.ipk "$ROOT"/dist/repo.json "$ROOT"/dist/sha256sums
 python3 "$ROOT/tools/package.py" --binary "$BINARY" --tv "$ROOT/tv" --out "$ROOT/dist" --arch arm
 
-IPK="$(ls -1 "$ROOT/dist"/com.novaos.launcher_*.ipk | head -1)"
+IPK="$(ls -1 "$ROOT"/dist/com.novaos.launcher_*.ipk | head -1)"
 echo "==> repository.py"
 python3 "$ROOT/tools/repository.py" --ipk "$IPK" \
     --base-url "${NOVA_REPO_URL:-https://novaos.example.org/repo}" \

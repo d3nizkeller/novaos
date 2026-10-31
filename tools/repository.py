@@ -35,7 +35,13 @@ def read_control(ipk: Path) -> dict:
         payload = blob[offset + 60 : offset + 60 + size]
         if name.startswith("control.tar.gz"):
             with tarfile.open(fileobj=io.BytesIO(payload), mode="r:gz") as tar:
-                member = tar.extractfile("./control") or tar.extractfile("control")
+                member = None
+                for candidate in ("control", "./control"):
+                    try:
+                        member = tar.extractfile(candidate)
+                        break
+                    except KeyError:
+                        continue
                 if member is None:
                     raise SystemExit("в control.tar.gz нет файла control")
                 for line in member.read().decode("utf-8").splitlines():

@@ -22,19 +22,19 @@
       "fullDescriptionUrl": "https://novaos.example.org/repo/com.novaos.launcher/README.md",
       "manifest": {
         "id": "com.novaos.launcher",
-        "version": "0.1.0",
+        "version": "0.1.1",
         "type": "native",
         "title": "NovaOS",
         "appDescription": "Быстрый нативный лаунчер NovaOS: плитки, избранное, магазин IPK и установка своих пакетов.",
         "iconUri": "https://novaos.example.org/repo/com.novaos.launcher/icon.png",
         "sourceUrl": "https://github.com/d3nizkeller/novaos",
         "rootRequired": false,
-        "ipkUrl": "https://novaos.example.org/repo/com.novaos.launcher_0.1.0_arm.ipk",
+        "ipkUrl": "https://novaos.example.org/repo/com.novaos.launcher_0.1.1_arm.ipk",
         "ipkHash": {
-          "sha256": "9742d996490247816e1499ef2241440b1126e39c22f4b2b15eae079875a65e7f"
+          "sha256": "d5f712fc2ae632973b07e7fa309511cfe5799756376334cb2ad2de2ce24982d5"
         },
-        "ipkSize": 1943670,
-        "installedSize": 7566
+        "ipkSize": 1943868,
+        "installedSize": 7748119
       }
     }
   ]
