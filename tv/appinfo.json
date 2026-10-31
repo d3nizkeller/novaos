@@ -1,18 +1,17 @@
 {
   "id": "com.novaos.launcher",
-  "version": "0.1.0",
-  "appDescription": "Быстрый нативный лаунчер NovaOS: плитки, избранное, магазин IPK и установка своих пакетов.",
-  "iconUri": "icon.png",
-  "largeIconUri": "largeIcon.png",
+  "version": "0.1.1",
+  "vendor": "NovaOS",
+  "type": "native",
   "main": "nova",
   "title": "NovaOS",
-  "type": "native",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "appDescription": "Быстрый нативный лаунчер NovaOS: плитки, избранное, магазин IPK и установка своих пакетов.",
+  "resolution": "1920x1080",
   "appCategory": ["home"],
   "requiredACG": ["application.launcher", "application.query", "lunabus.query"],
-  "handlesRelaunch": true,
-  "transparent": false,
+  "handlesRelaunch": false,
   "iconColor": "#3b82f6",
-  "uiVersion": "1",
-  "vendor": "NovaOS",
-  "support3D": false
+  "bgColor": "#0b0e14"
 }

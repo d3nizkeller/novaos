@@ -72,20 +72,19 @@ fn appinfo() -> String {
         r##"{{
   "id": "com.novaos.launcher",
   "version": "{version}",
-  "appDescription": "{description}",
-  "iconUri": "icon.png",
-  "largeIconUri": "largeIcon.png",
+  "vendor": "NovaOS",
+  "type": "native",
   "main": "nova",
   "title": "NovaOS",
-  "type": "native",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "appDescription": "{description}",
+  "resolution": "1920x1080",
   "appCategory": ["home"],
   "requiredACG": ["application.launcher", "application.query", "lunabus.query"],
-  "handlesRelaunch": true,
-  "transparent": false,
+  "handlesRelaunch": false,
   "iconColor": "#3b82f6",
-  "uiVersion": "1",
-  "vendor": "NovaOS",
-  "support3D": false
+  "bgColor": "#0b0e14"
 }}
 "##,
         version = nova_core::VERSION,

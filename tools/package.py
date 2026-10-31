@@ -48,35 +48,62 @@ def ar_member(name: str, data: bytes, mtime: int) -> bytes:
     return out
 
 
-def tar_gz(entries: list[tuple[str, bytes, int, bool]], mtime: int) -> bytes:
-    """gzip-тар из списка (путь, данные, mode, исполняемый)."""
+def tar_gz(entries: list[tuple[str, bytes, int]], mtime: int) -> bytes:
+    """gzip-тар из списка (путь, данные, mode).
+
+    Формат ustar без префиксов ``./`` — ровно так упакованы заведомо
+    рабочие пакеты webOS (luma, hbchannel): установщик webOS ожидает
+    имена участников вида ``usr/palm/applications/<id>/…`` и явные
+    записи каталогов.
+    """
     buffer = io.BytesIO()
-    with tarfile.open(fileobj=buffer, mode="w:gz", format=tarfile.GNU_FORMAT) as tar:
-        for path, data, mode, executable in entries:
+    with tarfile.open(fileobj=buffer, mode="w:gz", format=tarfile.USTAR_FORMAT) as tar:
+        for path, data, mode in entries:
             info = tarfile.TarInfo(path)
             info.size = len(data)
             info.mtime = mtime
             info.uid = UID_GID
             info.gid = UID_GID
-            info.mode = mode | (0o111 if executable else 0)
+            if mode & 0o40000:
+                info.type = tarfile.DIRTYPE
+                mode &= 0o7777
+            info.mode = mode
             info.uname = "developer"
             info.gname = "developer"
             tar.addfile(info, io.BytesIO(data))
     return buffer.getvalue()
 
 
-def control_text(appinfo: dict, installed_kb: int, architecture: str) -> str:
-    """Поля control-файла пакета (формат webOS 2)."""
+def dir_entries(app_dir: str) -> list[tuple[str, bytes, int]]:
+    """Явные записи каталогов, как в пакетах webOS."""
+    return [
+        ("usr", b"", 0o40777),
+        ("usr/palm", b"", 0o40777),
+        ("usr/palm/applications", b"", 0o40777),
+        (app_dir, b"", 0o40755),
+    ]
+
+
+DESCRIPTION = "Fast native launcher for LG webOS TV: tiles, store, sideload."
+
+
+def control_text(appinfo: dict, installed_bytes: int, architecture: str) -> str:
+    """Поля control-файла пакета (формат webOS 2).
+
+    Описание — только ASCII: установщик webOS разбирает control до
+    кодировок интерфейса. Размер — в байтах, как у пакетов webosbrew.
+    """
     lines = [
         f"Package: {appinfo['id']}",
         f"Version: {appinfo['version']}",
         "Section: misc",
         "Priority: optional",
         f"Architecture: {architecture}",
-        f"Installed-Size: {installed_kb}",
+        f"Installed-Size: {installed_bytes}",
         "Maintainer: NovaOS Team <novaos@localhost>",
-        f"Description: {appinfo['appDescription']}",
+        f"Description: {DESCRIPTION}",
         "webOS-Package-Format-Version: 2",
+        "webOS-Packager-Version: x.y.x",
     ]
     return "\n".join(lines) + "\n"
 
@@ -86,24 +113,20 @@ def build_ipk(binary: Path, tv: Path, out_dir: Path, architecture: str) -> Path:
     app_dir = f"usr/palm/applications/{appinfo['id']}"
 
     binary_bytes = binary.read_bytes()
-    entries: list[tuple[str, bytes, int, bool]] = [
-        (f"./{app_dir}/nova", binary_bytes, 0o755, True),
-        (f"./{app_dir}/appinfo.json", (tv / "appinfo.json").read_bytes(), 0o644, False),
-        (f"./{app_dir}/icon.png", (tv / "icon.png").read_bytes(), 0o644, False),
-        (f"./{app_dir}/largeIcon.png", (tv / "largeIcon.png").read_bytes(), 0o644, False),
-        (f"./{app_dir}/home.sh", (tv / "home.sh").read_bytes(), 0o755, True),
-        (
-            f"./{app_dir}/init.d/50-novaos-home",
-            (tv / "init.d" / "50-novaos-home").read_bytes(),
-            0o755,
-            True,
-        ),
+    entries: list[tuple[str, bytes, int]] = dir_entries(app_dir) + [
+        (f"{app_dir}/nova", binary_bytes, 0o755),
+        (f"{app_dir}/appinfo.json", (tv / "appinfo.json").read_bytes(), 0o644),
+        (f"{app_dir}/icon.png", (tv / "icon.png").read_bytes(), 0o644),
+        (f"{app_dir}/largeIcon.png", (tv / "largeIcon.png").read_bytes(), 0o644),
+        (f"{app_dir}/home.sh", (tv / "home.sh").read_bytes(), 0o755),
+        (f"{app_dir}/init.d", b"", 0o40755),
+        (f"{app_dir}/init.d/50-novaos-home", (tv / "init.d" / "50-novaos-home").read_bytes(), 0o755),
     ]
     data = tar_gz(entries, mtime=int(time.time()))
-    installed_kb = (len(binary_bytes) + sum(len(item[1]) for item in entries)) // 1024
+    installed_bytes = len(binary_bytes) + sum(len(item[1]) for item in entries)
 
-    control = control_text(appinfo, installed_kb, architecture).encode("utf-8")
-    control_tar = tar_gz([("./control", control, 0o644, False)], mtime=int(time.time()))
+    control = control_text(appinfo, installed_bytes, architecture).encode("ascii")
+    control_tar = tar_gz([("control", control, 0o666)], mtime=int(time.time()))
 
     mtime = int(time.time())
     archive = b"!<arch>\n"

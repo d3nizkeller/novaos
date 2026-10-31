@@ -109,12 +109,12 @@ def main() -> int:
                     "title": appinfo.get("title", appinfo["id"]),
                     "appDescription": appinfo.get("appDescription", ""),
                     "iconUri": icon_uri,
-                    "sourceUrl": "https://github.com/novaos/novaos",
+                    "sourceUrl": "https://github.com/d3nizkeller/novaos",
                     "rootRequired": False,
                     "ipkUrl": f"{args.base_url.rstrip('/')}/{file_name}",
                     "ipkHash": {"sha256": digest},
                     "ipkSize": size,
-                    "installedSize": int(control.get("Installed-Size", "0")) * 1024,
+                    "installedSize": int(control.get("Installed-Size", "0")),
                 },
             }
         )

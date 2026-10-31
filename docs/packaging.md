@@ -19,19 +19,26 @@ data.tar.gz        ./usr/palm/applications/com.novaos.launcher/…
 
 ```
 Package: com.novaos.launcher
-Version: 0.1.0
+Version: 0.1.1
 Section: misc
 Priority: optional
 Architecture: arm
-Installed-Size: 3788
+Installed-Size: 7748119
 Maintainer: NovaOS Team <novaos@localhost>
-Description: Быстрый нативный лаунчер NovaOS…
+Description: Fast native launcher for LG webOS TV: tiles, store, sideload.
 webOS-Package-Format-Version: 2
+webOS-Packager-Version: x.y.x
 ```
+
+`Description` — только ASCII (установщик разбирает control до кодировок
+интерфейса), `Installed-Size` — в байтах, как у пакетов webosbrew.
 
 `data.tar.gz` раскладывается в `usr/palm/applications/<id>/`: бинарник `nova`
 (0755), `appinfo.json`, иконки, `home.sh` и хук `init.d/50-novaos-home`.
-Владельцы файлов — uid/gid 1001 (пользователь приложений webOS).
+Владельцы файлов — uid/gid 1001 (пользователь приложений webOS). Каталоги
+`usr`, `usr/palm`, `usr/palm/applications` лежат явными записями с mode 0777,
+имена участников — без префикса `./`, формат tar — ustar: так упакованы
+заведомо рабочие пакеты webOS, и установщик ожидает именно эту раскладку.
 
 `appinfo.json` объявляет приложение нативным и домашним:
 

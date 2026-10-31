@@ -3,11 +3,11 @@ resolver = "2"
 members = ["crates/nova-core", "crates/nova-launcher"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.80"
 license = "MIT"
-repository = "https://github.com/novaos-tv/novaos"
+repository = "https://github.com/d3nizkeller/novaos"
 authors = ["NovaOS contributors"]
 
 [workspace.dependencies]
