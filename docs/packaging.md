@@ -34,7 +34,10 @@ webOS-Packager-Version: x.y.x
 интерфейса), `Installed-Size` — в байтах, как у пакетов webosbrew.
 
 `data.tar.gz` раскладывается в `usr/palm/applications/<id>/`: бинарник `nova`
-(0755), `appinfo.json`, иконки, `home.sh` и хук `init.d/50-novaos-home`.
+(0755), `appinfo.json`, иконки, `home.sh`, хук `init.d/50-novaos-home` и
+`lib/libSDL2-2.0.so.0` — SDL-webOS едет внутри пакета, потому что в прошивке
+webOS её нет; бинарник собирается с RPATH `$ORIGIN/lib` и путями lib всех
+каталогов установки (как у заведомо рабочего luma).
 Владельцы файлов — uid/gid 1001 (пользователь приложений webOS). Каталоги
 `usr`, `usr/palm`, `usr/palm/applications` лежат явными записями с mode 0777,
 имена участников — без префикса `./`, формат tar — ustar: так упакованы

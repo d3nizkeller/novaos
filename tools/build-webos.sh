@@ -42,7 +42,8 @@ file "$BINARY" || true
 
 echo "==> package.py"
 rm -f "$ROOT"/dist/*.ipk "$ROOT"/dist/repo.json "$ROOT"/dist/sha256sums
-python3 "$ROOT/tools/package.py" --binary "$BINARY" --tv "$ROOT/tv" --out "$ROOT/dist" --arch arm
+python3 "$ROOT/tools/package.py" --binary "$BINARY" --tv "$ROOT/tv" --out "$ROOT/dist" --arch arm \
+    --sdl-lib "$SDL/lib/libSDL2-2.0.so.0"
 
 IPK="$(ls -1 "$ROOT"/dist/com.novaos.launcher_*.ipk | head -1)"
 echo "==> repository.py"

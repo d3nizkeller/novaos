@@ -35,6 +35,12 @@ F1..F4 — цветные кнопки, F5 — обновить, Q — выхо�
 ";
 
 fn main() {
+    // Журнал аварий на устройстве: на ТВ stderr никто не видит, а файл
+    // переживает перезапуск и помогает понять, почему лаунчер не стартовал.
+    std::panic::set_hook(Box::new(|info| {
+        crash_log(&format!("panic: {info}"));
+    }));
+
     let args: Vec<String> = std::env::args().skip(1).collect();
 
     let mut backend = "auto".to_string();
@@ -126,6 +132,7 @@ fn main() {
         "sdl" => match nova_launcher::backend::sdl::run(&mut state, options.clone()) {
             Ok(frames) => eprintln!("nova: кадров отрисовано: {frames}"),
             Err(error) => {
+                crash_log(&format!("sdl: {error}"));
                 eprintln!("nova: SDL не запустился ({error}), пишу кадры в PNG");
                 nova_launcher::backend::offscreen::run(&mut state, fallback(options));
             }
@@ -133,6 +140,32 @@ fn main() {
         _ => {
             let frames = nova_launcher::backend::offscreen::run(&mut state, options);
             eprintln!("nova: кадров отрисовано: {frames}");
+        }
+    }
+}
+
+/// Пишет строку в аварийный журнал устройства (куда сможем записать).
+fn crash_log(message: &str) {
+    use std::io::Write;
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let line = format!("[{stamp}] {message}\n");
+    for path in [
+        "/tmp/nova-crash.log",
+        "/var/lib/novaos/crash.log",
+        "./nova-crash.log",
+    ] {
+        if let Some(dir) = std::path::Path::new(path).parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+        {
+            let _ = file.write_all(line.as_bytes());
         }
     }
 }

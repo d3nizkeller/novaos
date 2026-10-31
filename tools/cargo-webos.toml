@@ -14,4 +14,8 @@ ar = "arm-webos-linux-gnueabi-ar"
 rustflags = [
     # Чип LG M16P: пользовательский код webOS 4.x собирается под Cortex-A9.
     "-C", "target-cpu=cortex-a9",
+    # SDL2-webOS едет внутри пакета (в прошивке её нет): loader ищет её
+    # рядом с бинарником и в каталоге lib всех возможных мест установки —
+    # ровно так же упакован заведомо рабочий luma.
+    "-C", "link-arg=-Wl,-rpath,$ORIGIN/lib:/media/cryptofs/apps/usr/palm/applications/com.novaos.launcher/lib:/media/developer/apps/usr/palm/applications/com.novaos.launcher/lib:/usr/palm/applications/com.novaos.launcher/lib",
 ]

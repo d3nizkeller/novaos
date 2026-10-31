@@ -108,7 +108,27 @@ def control_text(appinfo: dict, installed_bytes: int, architecture: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def build_ipk(binary: Path, tv: Path, out_dir: Path, architecture: str) -> Path:
+def find_sdl_lib(explicit: Path | None) -> Path | None:
+    """libSDL2-2.0.so.0 из SDL-webOS: в прошивке webOS её нет."""
+    if explicit and explicit.exists():
+        return explicit.resolve()
+    root = os.environ.get("NOVA_WEBOS_SDL")
+    candidates = []
+    if root:
+        candidates.append(Path(root) / "lib")
+    candidates.append(Path("/home/user/.build/sdl/sdl2/lib"))
+    for directory in candidates:
+        for name in ("libSDL2-2.0.so.0", "libSDL2-2.0.so"):
+            path = directory / name
+            if path.exists():
+                return path.resolve()
+        matches = sorted(directory.glob("libSDL2-2.0.so.0.*"))
+        if matches:
+            return matches[-1].resolve()
+    return None
+
+
+def build_ipk(binary: Path, tv: Path, out_dir: Path, architecture: str, sdl_lib: Path | None = None) -> Path:
     appinfo = json.loads((tv / "appinfo.json").read_text(encoding="utf-8"))
     app_dir = f"usr/palm/applications/{appinfo['id']}"
 
@@ -122,6 +142,14 @@ def build_ipk(binary: Path, tv: Path, out_dir: Path, architecture: str) -> Path:
         (f"{app_dir}/init.d", b"", 0o40755),
         (f"{app_dir}/init.d/50-novaos-home", (tv / "init.d" / "50-novaos-home").read_bytes(), 0o755),
     ]
+    sdl = find_sdl_lib(sdl_lib)
+    if sdl is not None:
+        entries += [
+            (f"{app_dir}/lib", b"", 0o40755),
+            (f"{app_dir}/lib/libSDL2-2.0.so.0", sdl.read_bytes(), 0o755),
+        ]
+    else:
+        print("package.py: ВНИМАНИЕ — libSDL2-2.0.so.0 не найдена, пакет не запустится на ТВ", file=sys.stderr)
     data = tar_gz(entries, mtime=int(time.time()))
     installed_bytes = len(binary_bytes) + sum(len(item[1]) for item in entries)
 
@@ -147,12 +175,13 @@ def main() -> int:
     parser.add_argument("--tv", type=Path, default=Path("tv"), help="каталог tv/ с манифестом и иконками")
     parser.add_argument("--out", type=Path, default=Path("dist"), help="каталог результата")
     parser.add_argument("--arch", default="arm", help="Architecture пакета (arm или all)")
+    parser.add_argument("--sdl-lib", type=Path, default=None, help="путь к libSDL2-2.0.so.0 из SDL-webOS")
     args = parser.parse_args()
 
     if not args.binary.exists():
         print(f"package.py: нет бинарника {args.binary}", file=sys.stderr)
         return 1
-    ipk = build_ipk(args.binary, args.tv, args.out, args.arch)
+    ipk = build_ipk(args.binary, args.tv, args.out, args.arch, args.sdl_lib)
     digest = hashlib.sha256(ipk.read_bytes()).hexdigest()
     print(f"{ipk}  ({ipk.stat().st_size} байт)")
     print(f"sha256: {digest}")
