@@ -86,3 +86,41 @@ Home, журналы и скрипт отката. Строка **Настрой
 Экран **О системе → Диагностика** показывает модель, версию webOS, архитектуру,
 число приложений в каталоге, ошибки сканирования и вердикт совместимости.
 Журнал подмены Home — `/var/lib/novaos-home/boot.log`.
+
+### Если лаунчер не запускается
+
+1. **Версия пакета ≥ 0.1.2.** Прошивка webOS не содержит SDL2, поэтому начиная
+   с 0.1.2 пакет возит `libSDL2-2.0.so.0` в своём каталоге `lib/`, а бинарник
+   собран с RPATH. Пакеты 0.1.0/0.1.1 ставились, но не стартовали именно из-за
+   этого — обновитесь из репозитория или релиза.
+2. Проверьте раскладку пакета на устройстве:
+
+   ```sh
+   ls -la /media/cryptofs/apps/usr/palm/applications/com.novaos.launcher
+   # обязаны быть: nova, appinfo.json, icon.png, lib/libSDL2-2.0.so.0
+   ```
+
+3. Запустите бинарник вручную из SSH — ошибки загрузчика видны сразу:
+
+   ```sh
+   cd /media/cryptofs/apps/usr/palm/applications/com.novaos.launcher
+   ./nova --version          # загрузчик нашёл все библиотеки
+   ./nova --smoke            # 45 кадров в /tmp/nova-smoke и NOVA_SMOKE_OK
+   ```
+
+   Если `--version` говорит «error while loading shared libraries» — в
+   каталоге нет `lib/` или пакет старше 0.1.2.
+4. Аварийный журнал лаунчера (panic и ошибки SDL): `/tmp/nova-crash.log`,
+   дублируется в `/var/lib/novaos/crash.log`.
+5. Запуск через Luna вручную (ответ приходит прямо в терминал):
+
+   ```sh
+   luna-send -n 1 luna://com.webos.applicationManager/launch \
+     '{"id":"com.novaos.launcher"}'
+   ```
+
+   Ответ с `errorCode`/`errorText` указывает стадию: `300` — приложение не
+   найдено (пакет не зарегистрирован: перезагрузите ТВ), `301` — упал процесс
+   (смотрите журнал и ручной запуск), `400` — отказ прав/ACG.
+6. Журнал подмены Home, если включён режим «Подменять Home»:
+   `/var/lib/novaos-home/boot.log`; откат — `/var/lib/novaos-home/restore.sh`.
